@@ -1,0 +1,14 @@
+{
+  "_output_dir": "/Users/lucas/dev",
+  "_template": "gh:cjolowicz/cookiecutter-hypermodern-python",
+  "author": "Lucsa Vieira dos Santos",
+  "copyright_year": "2022",
+  "development_status": "Development Status :: 2 - Pre-Alpha",
+  "email": "lucas6eng@gmail.com",
+  "friendly_name": "System Identification",
+  "github_user": "iamlucassantos",
+  "license": "MIT",
+  "package_name": "sys_id",
+  "project_name": "sys-id",
+  "version": "0.0.0"
+}

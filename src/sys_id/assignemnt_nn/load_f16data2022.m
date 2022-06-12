@@ -15,5 +15,3 @@ Vtot = Z_k(:,3);    % measured velocity
 Au = U_k(:,1); % perfect accelerometer du/dt data
 Av = U_k(:,2); % perfect accelerometer dv/dt data
 Aw = U_k(:,3); % perfect accelerometer dw/dt data
-
-

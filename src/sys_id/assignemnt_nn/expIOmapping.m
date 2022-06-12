@@ -49,7 +49,7 @@ el = 36;
 %   ... creating figure for FF network
 plotID = 1012;
 figure(plotID);
-trisurf(TRIeval, Xeval(1, :)', Xeval(2, :)', yFF', 'EdgeColor', 'none'); 
+trisurf(TRIeval, Xeval(1, :)', Xeval(2, :)', yFF', 'EdgeColor', 'none');
 grid on;
 view(az, el);
 titstring = sprintf('Feedforward neural network - IO mapping');
@@ -72,7 +72,7 @@ drawnow();
 %   ... creating figure for RBF network
 plotID = 1;
 figure(plotID);
-trisurf(TRIeval, Xeval(1, :)', Xeval(2, :)', yRBF', 'EdgeColor', 'none'); 
+trisurf(TRIeval, Xeval(1, :)', Xeval(2, :)', yRBF', 'EdgeColor', 'none');
 grid on;
 view(az, el);
 titstring = sprintf('RBF neural network - IO mapping');

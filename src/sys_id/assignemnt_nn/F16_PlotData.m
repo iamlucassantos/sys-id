@@ -45,7 +45,7 @@ figure(plotID);
 set(plotID, 'Position', [0 100 900 500], 'defaultaxesfontsize', 10, 'defaulttextfontsize', 10, 'color', [1 1 1], 'PaperPositionMode', 'auto');
 % plot data points
 plot3(alpha_m, beta_m, Cm, '.k'); % note that alpha_m = alpha, beta_m = beta, y = Cm
-view(0, 90); 
+view(0, 90);
 ylabel('beta [rad]');
 xlabel('alpha [rad]');
 zlabel('C_m [-]');
@@ -62,7 +62,7 @@ end
 plotID = 1001;
 figure(plotID);
 set(plotID, 'Position', [800 100 900 500], 'defaultaxesfontsize', 10, 'defaulttextfontsize', 10, 'color', [1 1 1], 'PaperPositionMode', 'auto');
-trisurf(TRIeval, alpha_m, beta_m, Cm, 'EdgeColor', 'none'); 
+trisurf(TRIeval, alpha_m, beta_m, Cm, 'EdgeColor', 'none');
 grid on;
 hold on;
 % plot data points
@@ -72,7 +72,7 @@ ylabel('beta [rad]');
 xlabel('alpha [rad]');
 zlabel('C_m [-]');
 title('F16 CM(\alpha_m, \beta_m) raw interpolation');
-% set fancy options for plotting 
+% set fancy options for plotting
 set(gcf,'Renderer','OpenGL');
 hold on;
 poslight = light('Position',[0.5 .5 15],'Style','local');
@@ -103,14 +103,14 @@ if (exist('Cm_val'))
     xlabel('validation alpha [rad]');
     zlabel('validation C_m_{val} [-]');
     title('F16 CM(\alpha_{val}, \beta_{val}) validation set');
-    % set fancy options for plotting 
+    % set fancy options for plotting
     % print results to disk if printfigs = 1
     if (printfigs == 1)
         fpath = sprintf('fig_F16valdata3D');
         savefname = strcat(figpath, fpath);
         print(plotID, '-dpng', '-r300', savefname);
     end
-    
+
     plotID = 2002;
     figure(plotID);
     set(plotID, 'Position', [400 400 500 500], 'defaultaxesfontsize', 10, 'defaulttextfontsize', 10, 'color', [1 1 1], 'PaperPositionMode', 'auto');
@@ -121,7 +121,7 @@ if (exist('Cm_val'))
     ylabel('validation beta [rad]');
     xlabel('validation alpha [rad]');
     title('F16 (\alpha_{val}, \beta_{val}) special validation set');
-    % set fancy options for plotting 
+    % set fancy options for plotting
     % print results to disk if printfigs = 1
     if (printfigs == 1)
         fpath = sprintf('fig_F16valdata');
@@ -129,6 +129,3 @@ if (exist('Cm_val'))
         print(plotID, '-dpng', '-r300', savefname);
     end
 end
-
-
-

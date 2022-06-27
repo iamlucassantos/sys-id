@@ -5,7 +5,6 @@ import numpy as np
 from helpers import F16
 from helpers import rk4
 
-
 # Set seed
 np.random.seed(7)
 
@@ -31,7 +30,7 @@ to_iterate = True  # If IEFK should be used
 ######################
 
 # Define initial values
-E_x_0 = np.array([F16.V_m[0], 0, 0, 0])  # Initial estimate of optimal value of x_k1_k1
+E_x_0 = np.array([[F16.V_m[0]], [0], [0], [0]])  # Initial estimate of optimal value of x_k1_k1
 std_x_0 = np.array([100] * 4)  # Initial standard deviation of state prediction error
 P_0 = np.diag(std_x_0) ** 2  # Initial covariance of state prediction error
 
@@ -50,7 +49,6 @@ R = np.diag(std_v) ** 2  # Variance of measurement noise
 v_k = np.diag(std_v) @ np.random.normal(size=(nm, n_samples)) + np.diag(E_v) @ np.ones(
     (nm, n_samples)
 )  # Measurement noise
-
 
 #######################
 # 3 Start Kalman filter
@@ -75,9 +73,9 @@ for k in range(0, n_samples):
     # 3. Discretize state transition matrix
     ss_B = c.ss(Fx, F16.B, np.zeros((F16.n_measurements, F16.n_states)), 0)
     ss_G = c.ss(Fx, F16.G, np.zeros((F16.n_measurements, F16.n_states)), 0)
-    Psi = c.c2d(ss_B, dt).B
-    Phi = c.c2d(ss_G, dt).A
-    Gamma = c.c2d(ss_G, dt).B
+    Psi = np.array(c.c2d(ss_B, dt).B)
+    Phi = np.array(c.c2d(ss_G, dt).A)
+    Gamma = np.array(c.c2d(ss_G, dt).B)
 
     # 4. Covariance matrix of state prediction error: P_k+1_k
     P_k1_k = Phi @ P_k1_k1 @ Phi.T + Gamma @ Q @ Gamma.T
@@ -91,4 +89,33 @@ for k in range(0, n_samples):
             n_iterations += 1
             eta_1 = eta_2.copy()
 
-            pass
+            # 5. Recalculate the Jacobian d/dx(h(x))
+            Hx = F16.calc_Hx(0, eta_1, F16.u_k[:, k])
+
+            # Prediction of observation (validation)
+            z_k1_k = F16.calc_h(0, eta_1, F16.u_k[:, k])
+
+            # Covariance matrix of observation error (validation)
+            P_zz = Hx @ P_k1_k @ Hx.T + R
+
+            # Standard deviation of observation error (validation)
+            std_z = np.diag(P_zz) ** 2
+
+            # 6. Kalman gain recalculation
+            K = P_k1_k @ Hx.T @ np.linalg.inv(P_zz)
+
+            # 7. Measurement update
+            eta_2 = x_k1_k + K @ (F16.z_k[:, [k]] - z_k1_k - Hx @ (x_k1_k - eta_1))
+
+            error = np.linalg.norm(eta_2 - eta_1) / np.linalg.norm(eta_1)
+
+        # 8. Covariance matrix of estate estimation error P_k+1_k+1
+        P_k1_k1 = (np.identity(F16.n_states) - K @ Hx) @ P_k1_k @ (np.identity(F16.n_states) - K @ Hx).T + \
+                  K @ R @ K.T
+
+        # standard deviation of state estimation error (validation)
+        std_x_cor = np.diag(P_k1_k1)**2
+
+        # Next step
+        t_k = t_k1
+        t_k1 += dt

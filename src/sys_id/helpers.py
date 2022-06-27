@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-
+from math import atan
 
 # Define paths to data files
 ROOT_PATH = Path(__file__).parent.parent
@@ -31,12 +31,52 @@ class Model:
     def calc_f(t: np.ndarray, x: np.ndarray, u: np.ndarray):
         """Defines the state equation."""
         del t, x
-        return u
+        return np.array([u]).T
 
     @staticmethod
     def calc_Fx():
         """Defines Jacobian of the state equation"""
         return np.zeros((4, 4))
+
+    def calc_Hx(self, t: np.ndarray, x: np.ndarray, u: np.ndarray):
+        """Defines the Jacobian H=d/dx(h(x))."""
+        del t, u
+        u, v, w, C_a_up = x.flatten()
+
+        Hx = np.zeros((self.n_measurements, self.n_states))
+
+        # d/du
+        Hx[0, 0] = -w / (u ** 2 + w ** 2) * (1 + C_a_up)
+        Hx[1, 0] = -u * v / ((u ** 2 + v ** 2 + w ** 2) * (u ** 2 + w ** 2) ** .5)
+        Hx[2, 0] = u / (u ** 2 + v ** 2 + w ** 2) ** .5
+
+        # d/dv
+        Hx[0, 1] = 0
+        Hx[1, 1] = (u ** 2 + w ** 2) ** .5 / (u ** 2 + v ** 2 + w ** 2)
+        Hx[2, 1] = v / (u ** 2 + v ** 2 + w ** 2) ** .5
+
+        # d/dw
+        Hx[0, 2] = u / (u ** 2 + w ** 2) * (1 + C_a_up)
+        Hx[1, 2] = -u * v / ((u ** 2 + v ** 2 + w ** 2) * (u ** 2 + w ** 2) ** .5)
+        Hx[2, 2] = w / (u ** 2 + v ** 2 + w ** 2) ** .5
+
+        # d/dC_a_up
+        Hx[0, 3] = atan(w / u)
+        Hx[1, 3] = 0
+        Hx[2, 3] = 0
+        return Hx
+
+    def calc_h(self, t: np.ndarray, x: np.ndarray, u: np.ndarray):
+        """Defines the observation matrix."""
+        del t, u
+        u, v, w, C_a_up = x.flatten()
+        h = np.zeros((self.n_measurements, 1))
+
+        h[0, 0] = atan(w / u) * (1 + C_a_up)
+        h[1, 0] = atan(v / (u ** 2 + w ** 2) ** .5)
+        h[2, 0] = (u ** 2 + v ** 2 + w ** 2) ** .5
+
+        return h
 
     @staticmethod
     def load_training_data():

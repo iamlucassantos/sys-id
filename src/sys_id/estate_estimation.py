@@ -3,10 +3,12 @@
 import control.matlab as c
 import numpy as np
 from helpers import F16
-from helpers import rk4
+from helpers import rk4, REPORT_PATH
+import matplotlib.pyplot as plt
+import csv
 
 # Set seed
-np.random.seed(7)
+# np.random.seed(7)
 
 #####################
 # 1 Simulation set up
@@ -17,12 +19,11 @@ n = F16.n_states  # State dimension
 nm = F16.n_measurements  # Number of measurements
 n_samples = F16.n_samples  # Number of samples
 dt = 0.01  # Time step [s]
-epsilon = 10 ** (-10)  # IEKF threshold TODO
+epsilon = 1e-10  # IEKF threshold TODO
 max_iterations = 100  # Number maximum of iterations
 
 # Configurations
-to_plot = False  # If plots are desired
-to_save = False  # If plots should be saved
+to_save = True  # If data should be saved
 to_iterate = True  # If IEFK should be used
 
 ######################
@@ -31,7 +32,7 @@ to_iterate = True  # If IEFK should be used
 
 # Define initial values
 E_x_0 = np.array([[F16.V_m[0]], [0], [0], [0]])  # Initial estimate of optimal value of x_k1_k1
-std_x_0 = np.array([100] * 4)  # Initial standard deviation of state prediction error
+std_x_0 = np.array([5] * 4)  # Initial standard deviation of state prediction error
 P_0 = np.diag(std_x_0) ** 2  # Initial covariance of state prediction error
 
 # System noise statistics
@@ -57,6 +58,21 @@ v_k = np.diag(std_v) @ np.random.normal(size=(nm, n_samples)) + np.diag(E_v) @ n
 # Initialize Extended Kalman Filter
 t_k = 0
 t_k1 = dt
+
+# Create data storage
+output_data = {
+}
+data_to_save = ['u', 'v', 'w', 'C_m_up', 'a', 'b', 'V',
+                'std_u', 'std_v', 'std_w', 'std_C_m_up', 'a_true', 'time']
+for data in data_to_save:
+    output_data[data] = np.zeros(F16.n_samples)
+
+x_k1_k1_data = np.zeros((F16.n_states, F16.n_samples))
+# PP_k1_k1 = np.zeros([n, N])
+# STD_x_cor = np.zeros([n, N])
+# STD_z = np.zeros([nm, N])
+# ZZ_pred = np.zeros([nm, N])
+# IEKFitcount = np.zeros([N, 1])
 
 # Initialize state estimation and error covariance matrix
 x_k1_k1 = E_x_0.copy()  # x(0|0) = E(x_0)
@@ -109,13 +125,39 @@ for k in range(0, n_samples):
 
             error = np.linalg.norm(eta_2 - eta_1) / np.linalg.norm(eta_1)
 
-        # 8. Covariance matrix of estate estimation error P_k+1_k+1
-        P_k1_k1 = (np.identity(F16.n_states) - K @ Hx) @ P_k1_k @ (np.identity(F16.n_states) - K @ Hx).T + \
-                  K @ R @ K.T
+        x_k1_k1 = eta_2.copy()
 
-        # standard deviation of state estimation error (validation)
-        std_x_cor = np.diag(P_k1_k1)**2
+    # 8. Covariance matrix of estate estimation error P_k+1_k+1
+    P_k1_k1 = (np.identity(F16.n_states) - K @ Hx) @ P_k1_k @ (np.identity(F16.n_states) - K @ Hx).T + \
+              K @ R @ K.T
 
-        # Next step
-        t_k = t_k1
-        t_k1 += dt
+    # standard deviation of state estimation error (validation)
+    std_x_cor = np.diag(P_k1_k1) ** 2
+
+    # Store data
+    output_data['u'][k] = x_k1_k1[0, :]
+    output_data['v'][k] = x_k1_k1[1, :]
+    output_data['w'][k] = x_k1_k1[2, :]
+    output_data['C_m_up'][k] = x_k1_k1[3, :]
+
+    output_data['std_u'][k] = std_x_cor[0]
+    output_data['std_v'][k] = std_x_cor[1]
+    output_data['std_w'][k] = std_x_cor[2]
+    output_data['std_C_m_up'][k] = std_x_cor[3]
+
+    output_data['a'][k] = z_k1_k[0, :]
+    output_data['b'][k] = z_k1_k[1, :]
+    output_data['V'][k] = z_k1_k[2, :]
+
+    output_data['a_true'][k] = F16.z_k[0, k] / (1 + x_k1_k1[3, :])
+    output_data['time'][k] = t_k
+
+    # Next step
+    t_k = t_k1
+    t_k1 += dt
+
+if to_save:
+    import pandas as pd
+
+    df = pd.DataFrame(output_data)
+    df.to_csv("state_estimation.csv", index=False)

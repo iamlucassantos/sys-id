@@ -10,6 +10,7 @@ from math import atan
 # Define paths to data files
 ROOT_PATH = Path(__file__).parent.parent
 FILES_PATH = ROOT_PATH / "assignment_nn"
+REPORT_PATH = ROOT_PATH.parent / "report/figures"
 
 # Define name of data files
 TRAINING_FILE = "F16traindata_CMabV_2022.csv"
@@ -25,6 +26,7 @@ class Model:
         self.c_m, self.z_k, self.u_k = self.load_training_data()
         self.n_samples = len(self.c_m)
         self.B = np.eye(self.n_states, self.n_measurements)  # Input matrix
+        self.B[-1, :] = 0
         self.G = np.zeros((self.n_states, self.n_states))  # Noise input matrix
 
     @staticmethod

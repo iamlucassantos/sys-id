@@ -8,6 +8,7 @@ sns.set_context("talk")
 
 
 to_save = True  # If figures should be saved
+to_plot = False
 
 df = pd.read_csv('state_estimation.csv')
 t = df['time']
@@ -32,16 +33,15 @@ plt.tight_layout()
 plt.savefig(REPORT_PATH/"estate_estimation_wash.pdf")
 
 fig, ax = plt.subplots(3, 1, figsize=(9, 5))
-ax[0].plot(t, df['u'], label='u')
+ax[0].plot(t, df['u'])
 ax[0].set_ylabel(r'$u$ [rad]')
-ax[1].plot(t, df['v'], label='v')
+ax[1].plot(t, df['v'])
 ax[1].set_ylabel(r'$v$ [rad]')
-ax[2].plot(t, df['w'], label='w')
+ax[2].plot(t, df['w'])
 ax[2].set_ylabel(r'$w$ [rad]')
-
 ax[2].set_xlabel('Time [s]')
 plt.tight_layout()
-plt.legend()
 plt.savefig(REPORT_PATH/"estate_estimation_output.pdf")
 
-plt.show()
+if to_plot:
+    plt.show()

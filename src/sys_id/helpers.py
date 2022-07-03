@@ -14,7 +14,7 @@ REPORT_PATH = ROOT_PATH.parent / "report/figures"
 
 # Define name of data files
 TRAINING_FILE = "F16traindata_CMabV_2022.csv"
-
+VALIDATING_FILE = "F16validationdata_CMab_2022.csv"
 
 class Model:
     """Class with Kalman filter helpers"""
@@ -28,6 +28,7 @@ class Model:
         self.B = np.eye(self.n_states, self.n_measurements)  # Input matrix
         self.B[-1, :] = 0
         self.G = np.zeros((self.n_states, self.n_states))  # Noise input matrix
+        self.c_m_val, self.a_val, self.b_val = self.load_validating_data()
 
     @staticmethod
     def calc_f(t: np.ndarray, x: np.ndarray, u: np.ndarray):
@@ -81,8 +82,31 @@ class Model:
         return h
 
     @staticmethod
+    def load_validating_data():
+        """Loads training data."""
+        with open(FILES_PATH / VALIDATING_FILE) as csvfile:
+            # Define name of fields
+            field_names = ["c_m_val", "a_val", "b_val"]
+            dict_data = {field: [] for field in field_names}
+
+            # Create csv reader
+            reader = csv.DictReader(csvfile, fieldnames=field_names)
+
+            # Read rows and append to dict
+            for row in reader:
+                for field in field_names:
+                    dict_data[field].append(row[field])
+
+        c_m_val = np.array(dict_data['c_m_val'], dtype=float)
+        a_val = np.array(dict_data['a_val'], dtype=float)
+        b_val = np.array(dict_data['b_val'], dtype=float)
+
+
+        return c_m_val, a_val, b_val
+
+    @staticmethod
     def load_training_data():
-        """Loads training data"""
+        """Loads training data."""
         with open(FILES_PATH / TRAINING_FILE) as csvfile:
             # Define name of fields
             field_names = ["cm", "a_m", "b_m", "V_m", "u_dot", "v_dot", "w_dot"]

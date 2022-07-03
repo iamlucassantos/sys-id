@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 from helpers import F16
+from sklearn.preprocessing import PolynomialFeatures
 
 # Load training data
 df = pd.read_csv("state_estimation.csv")
@@ -17,22 +18,24 @@ y_val = F16.c_m_val.reshape(-1, 1)
 
 def build_a(vec_1: np.ndarray, vec_2: np.ndarray, pol_ord: int):
     """Builds matrix A for two variables."""
-    ones = np.ones(vec_1.shape)
-    A = np.zeros(1)
-    if pol_ord == 1:
-        A = np.block([ones, vec_1, vec_2])
-    elif pol_ord == 2:
-        A = np.block([ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2])
-    elif pol_ord == 3:
-        A = np.block(
-            [ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2, vec_1 ** 3, vec_2 ** 3, vec_1 ** 2 * vec_2,
-             vec_1 * vec_2 ** 2])
-    elif pol_ord == 4:
-        A = np.block(
-            [ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2, vec_1 ** 3, vec_2 ** 3,
-             vec_1 ** 2 * vec_2, vec_1 * vec_2 ** 2, vec_1 ** 4, vec_2 ** 4, vec_1 ** 3 * vec_2,
-             vec_1 * vec_2 ** 3, vec_1 ** 2 * vec_2 ** 2]
-        )
+    poly = PolynomialFeatures(pol_ord)
+    A = poly.fit_transform(np.block([vec_1, vec_2]))
+    # ones = np.ones(vec_1.shape)
+    # A = np.zeros(1)
+    # if pol_ord == 1:
+    #     A = np.block([ones, vec_1, vec_2])
+    # elif pol_ord == 2:
+    #     A = np.block([ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2])
+    # elif pol_ord == 3:
+    #     A = np.block(
+    #         [ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2, vec_1 ** 3, vec_2 ** 3, vec_1 ** 2 * vec_2,
+    #          vec_1 * vec_2 ** 2])
+    # elif pol_ord == 4:
+    #     A = np.block(
+    #         [ones, vec_1, vec_2, vec_1 ** 2, vec_2 ** 2, vec_1 * vec_2, vec_1 ** 3, vec_2 ** 3,
+    #          vec_1 ** 2 * vec_2, vec_1 * vec_2 ** 2, vec_1 ** 4, vec_2 ** 4, vec_1 ** 3 * vec_2,
+    #          vec_1 * vec_2 ** 3, vec_1 ** 2 * vec_2 ** 2]
+    #     )
 
     return A
 
@@ -56,7 +59,7 @@ covariance = {
     'train': [],
     'val': []
 }
-for i in range(1, 5):
+for i in range(1, 7):
     A = build_a(x1, x2, i)
     A_val = build_a(x1_val, x2_val, i)
     theta_ols = solve_ols(A, y)
@@ -78,7 +81,7 @@ for i in range(1, 5):
 
     covariance['train'].append(cov_train)
     covariance['val'].append(cov_val)
-    print(f"Order {i}: {theta_ols}")
+    print(f"Order {i}: {theta_ols.flatten()}")
 
 
 df_train = pd.DataFrame.from_dict(df_train)

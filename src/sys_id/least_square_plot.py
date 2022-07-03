@@ -22,18 +22,15 @@ plt.savefig(REPORT_PATH/"parameter_estimation_domain.pdf")
 
 # Plot pol order
 fig, ax = plt.subplots(figsize=(9, 5))
-ax.plot(np.sqrt(df_train[['e_1', 'e_2', 'e_3', 'e_4']].mean()), '-o', label="Training data")
-ax.plot(np.sqrt(df_val[['e_1', 'e_2', 'e_3', 'e_4']].mean()), '-o', label="Validation data")
-ax.set_xticklabels([i for i in range(1, 5)])
+ax.plot(np.sqrt(df_train[[f'e_{i}' for i in range(1, 7)]].mean()), '-o', label="Training data")
+ax.plot(np.sqrt(df_val[[f'e_{i}' for i in range(1, 7)]].mean()), '-o', label="Validation data")
+# ax.set_xticklabels([i for i in range(1, 5)])
 ax.set_xlabel("Order [-]")
 ax.set_ylabel("RMS [-]")
 plt.legend()
 plt.tight_layout()
 plt.savefig(REPORT_PATH/"parameter_estimation_mse.pdf")
 
-
-fig, ax = plt.subplots(figsize=(9, 5))
-ax.boxplot(df_train[['e_1', 'e_2', 'e_3', 'e_4']])
 
 
 plt.show()

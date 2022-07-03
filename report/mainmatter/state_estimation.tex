@@ -164,7 +164,7 @@ The variance of the coefficients was determined by \autoref{eq:variance-pol}. In
 	Var\{\hat{\theta}\} = diag(\frac{\epsilon^T\epsilon}{n-k}(A^T(x)\cdot A(x))^{-1})
 \end{equation}
 
-For different polynomial orders, different models are determined. \autoref{fig:rms-pol} shows the root mean squared (RMS) of the residuals for each polynomial order. Increasing the polynomial order, the estimation error of the training dataset reduces. However, for the validation dataset, the error increases for orders higher than 3. That happens because increasing the complexity of the model by adding more coefficients results in an overfit of the training data. Therefore, the model cannot generalise the solution for data it has not seen during fitting. 
+For different polynomial orders, different models are determined. \autoref{fig:rms-pol} shows the root mean squared (RMS) of the residuals for each polynomial order. Increasing the polynomial order, the estimation error of the training dataset reduces. However, for the validation dataset, the error increases for orders higher than 2. That happens because increasing the complexity of the model by adding more coefficients results in an overfit of the training data. Therefore, the model cannot generalise the solution for data it has not seen during fitting. 
 
 \begin{figure}[h]
 \centering

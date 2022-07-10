@@ -155,7 +155,7 @@ for k in range(0, n_samples):
     # Next step
     t_k = t_k1
     t_k1 += dt
-output_data['a_true'] = F16.z_k[0, :] / (1+x_k1_k1[3, -1])
+output_data['a_true'] = F16.z_k[0, :] / (1 + x_k1_k1[3, -1])
 if to_save:
     import pandas as pd
 

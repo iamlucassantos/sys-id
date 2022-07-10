@@ -3,7 +3,7 @@
 import csv
 from dataclasses import dataclass
 from pathlib import Path
-
+from scipy.spatial.distance import cdist
 import numpy as np
 from math import atan
 
@@ -15,6 +15,7 @@ REPORT_PATH = ROOT_PATH.parent / "report/figures"
 # Define name of data files
 TRAINING_FILE = "F16traindata_CMabV_2022.csv"
 VALIDATING_FILE = "F16validationdata_CMab_2022.csv"
+
 
 class Model:
     """Class with Kalman filter helpers"""
@@ -101,7 +102,6 @@ class Model:
         a_val = np.array(dict_data['a_val'], dtype=float)
         b_val = np.array(dict_data['b_val'], dtype=float)
 
-
         return c_m_val, a_val, b_val
 
     @staticmethod
@@ -160,6 +160,24 @@ def rk4(func, x_0, u_0, t):
         t += h
 
     return t, w
+
+
+def simNet(net):
+    """Python version of simNet.m"""
+    n_input = net.n_input
+    n_hidden = net.n_hidden
+    n_measurements = net.n_measurements
+
+    if net.name == 'rbf':
+        V1 = np.zeros((n_hidden, n_measurements))
+
+        for i in range(n_input):
+            V1 += (net.IW[:, [i]] * net.x[:, i] - net.IW[:, [i]] * net.centroids[:, [i]]) ** 2
+
+        Y1 = np.exp(-V1)
+
+        Y2 = net.LW @ Y1
+    return Y2
 
 
 # Creates F16 model

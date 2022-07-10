@@ -3,6 +3,7 @@ from helpers import REPORT_PATH
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from helpers import F16
 
 sns.set_theme(style="darkgrid")
 sns.set_context("talk")
@@ -12,7 +13,7 @@ df_val = pd.read_csv("data/ols_val.csv")
 
 # Plot working space
 fig, ax = plt.subplots(figsize=(9, 5))
-ax.plot(df_train['x1'], df_train['x2'], 'o', label='Training data')
+ax.plot(F16.z_k[0, :], F16.z_k[1, :], 'o', label='Training data')
 ax.plot(df_val['x1'], df_val['x2'], 'o', label='Validation data')
 ax.set_xlabel(r'$\alpha$ [rad]')
 ax.set_ylabel(r'$\beta$ [rad]')

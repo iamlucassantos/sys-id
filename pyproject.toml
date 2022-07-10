@@ -16,12 +16,13 @@ classifiers = [
 Changelog = "https://github.com/iamlucassantos/sys-id/releases"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.11"
 click = ">=8.0.1"
 control = "^0.9.2"
 pandas = "^1.4.3"
 seaborn = "^0.11.2"
 sklearn = "^0.0"
+scipy = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
 Pygments = ">=2.10.0"

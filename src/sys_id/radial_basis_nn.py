@@ -1,12 +1,14 @@
 """Module that creates the radial basis function neural network."""
-from scipy.io import savemat
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from helpers import F16
-from sklearn.cluster import KMeans
-import matplotlib.pyplot as plt
 import plotly.figure_factory as ff
+from scipy.io import savemat
 from scipy.spatial import Delaunay
+from sklearn.cluster import KMeans
+
+from helpers import F16
+from least_square import ols
 
 
 class Network:
@@ -56,11 +58,9 @@ class RBF(Network):
         kmeans = KMeans(n_clusters=self.n_hidden, random_state=random_state).fit(x)
         return kmeans.cluster_centers_
 
-    def fit(self, x, y, n_hidden=1):
+    def fit(self, x, y, n_hidden=1, method="ols"):
         """Fits the RBF network."""
         # Get centroids of data
-        self.x = x
-        self.y = y
         self.n_input = x.shape[1]
         self.n_output = y.shape[1]
         self.n_hidden = n_hidden
@@ -72,14 +72,21 @@ class RBF(Network):
         y1, _ = self.simNet(x)
         y1 = y1.T
         # Usine least square to determine weights of output layer
-        w = (np.linalg.inv(y1.T @ y1) @ y1.T) @ y
-        self.LW = w.T
+
+        if method == "ols":
+            w = ols(y1, y)
+            self.LW = w.T
 
     def predict(self, x):
         """Predicts the output of the RBF network."""
         _, y = self.simNet(x)
         y = y.T
         return y
+
+    def levenberg(self):
+        """Levenberg-Marquardt algorithm."""
+
+        J = np.zeros((self.n_hidden, self.n_input))
 
     def plot_centroids(self):
         fig, ax = plt.subplots()
@@ -115,8 +122,6 @@ class RBF(Network):
             'min_grad': 1e-10,
             'mu': 1e-3
         }  # TODO
-        rbf['x'] = self.x
-        rbf['y'] = self.y
 
         rbf['trainFunct'] = np.array([['radbas'], ['purelin']], dtype=object)  # TODO
         rbf['trainAlg'] = np.array([['trainlm']], dtype=object)  # TODO

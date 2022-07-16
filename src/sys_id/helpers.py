@@ -162,23 +162,5 @@ def rk4(func, x_0, u_0, t):
     return t, w
 
 
-def simNet(net):
-    """Python version of simNet.m"""
-    n_input = net.n_input
-    n_hidden = net.n_hidden
-    n_measurements = net.n_measurements
-
-    if net.name == 'rbf':
-        V1 = np.zeros((n_hidden, n_measurements))
-
-        for i in range(n_input):
-            V1 += (net.IW[:, [i]] * net.x[:, i] - net.IW[:, [i]] * net.centroids[:, [i]]) ** 2
-
-        Y1 = np.exp(-V1)
-
-        Y2 = net.LW @ Y1
-    return Y2
-
-
 # Creates F16 model
 F16 = Model()

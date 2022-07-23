@@ -1,51 +1,14 @@
 """Module that creates the radial basis function neural network."""
-import numpy as np
-import pandas as pd
-
-from scipy.io import savemat
-from sklearn.cluster import KMeans
-from rich.console import Console
-from rich.table import Table
 import pickle
 
-from helpers import F16
+import numpy as np
+import pandas as pd
+from rich.console import Console
+from scipy.io import savemat
+from sklearn.cluster import KMeans
+
+from helpers import F16, Network
 from least_square import ols
-
-# Set seed
-np.random.seed(2)
-
-
-class Network:
-
-    def __init__(self, name):
-        self.name = name
-
-    @staticmethod
-    def rms(v1, v2):
-        """Calculate the root mean square error between two vectors."""
-        return np.sqrt(np.mean((v1 - v2) ** 2))
-
-    def simNet(self, x, IW=None, LW=None, a=None, centroids=None):
-        """Python version of simNet.m"""
-        n_input = self.n_input
-        n_hidden = self.n_hidden
-        n_measurements = x.shape[0]
-        IW = self.IW if IW is None else IW
-        LW = self.LW if LW is None else LW
-        a = self.a if a is None else a
-        centroids = self.centroids if centroids is None else centroids
-
-        if self.name == 'rbf':
-            V1 = np.zeros((n_hidden, n_measurements))
-
-            for i in range(n_input):
-                V1 += (IW[:, [i]] * (x[:, i] - centroids[:, [i]])) ** 2
-
-            Y1 = a * np.exp(-V1)
-
-            Y2 = LW.T @ Y1
-
-        return Y1, Y2
 
 
 class RBF(Network):
@@ -70,6 +33,39 @@ class RBF(Network):
     def get_centroids(self, x, random_state=1):
         kmeans = KMeans(n_clusters=self.n_hidden, random_state=random_state).fit(x)
         return kmeans.cluster_centers_
+
+    def jacobian(self, x, y1):
+        """Computes the Jacobian matrix."""
+        # Output weights error
+        de_dy = -1
+        dy_dvk = 1
+        dvk_dlw = y1
+        de_dlw = de_dy * dy_dvk * dvk_dlw
+
+        # Input weights error
+        dvk_dyj = self.LW.T
+        dyj_dvj = -y1
+
+        de_diw_list = []
+        for i in range(self.n_input):
+            dvj_diw = 2 * (self.IW[:, [i]] * (x[:, i] - self.centroids[:, [i]]) ** 2)
+            de_diw_list.append(de_dy * dy_dvk * dvk_dyj * dyj_dvj * dvj_diw.T)
+        de_diw = np.hstack(de_diw_list)
+
+        # Amplitude error
+        dyj_da = (y1.T / self.a).T
+        de_da = de_dy * dy_dvk * dvk_dyj * dyj_da
+
+        # Centroid error
+        de_dc_list = []
+        for i in range(self.n_input):
+            dvj_dc = 2 * (self.IW[:, [i]] ** 2 * (x[:, i] - self.centroids[:, [i]])) * -1
+            de_dc_list.append(de_dy * dy_dvk * dvk_dyj * dyj_dvj * dvj_dc.T)
+        de_dc = np.hstack(de_dc_list)
+
+        J = np.hstack((de_diw, de_dlw, de_da, de_dc))
+
+        return J
 
     def fit(self, x, y, n_hidden=1, method="ols", epoch=100, goal=0, min_grad=1e-10, mu=1e-3):
         """Fits the RBF network."""
@@ -164,34 +160,7 @@ class RBF(Network):
             output["error"].append(E)
             output['rms'].append(self.rms(y, y2))
 
-            # Output weights error
-            de_dy = -1
-            dy_dvk = 1
-            dvk_dlw = y1
-            de_dlw = de_dy * dy_dvk * dvk_dlw
-
-            # Input weights error
-            dvk_dyj = self.LW.T
-            dyj_dvj = -y1
-
-            de_diw_list = []
-            for i in range(self.n_input):
-                dvj_diw = 2 * (self.IW[:, [i]] * (x[:, i] - self.centroids[:, [i]]) ** 2)
-                de_diw_list.append(de_dy * dy_dvk * dvk_dyj * dyj_dvj * dvj_diw.T)
-            de_diw = np.hstack(de_diw_list)
-
-            # Amplitude error
-            dyj_da = (y1.T / self.a).T
-            de_da = de_dy * dy_dvk * dvk_dyj * dyj_da
-
-            # Centroid error
-            de_dc_list = []
-            for i in range(self.n_input):
-                dvj_dc = 2 * (self.IW[:, [i]] ** 2 * (x[:, i] - self.centroids[:, [i]])) * -1
-                de_dc_list.append(de_dy * dy_dvk * dvk_dyj * dyj_dvj * dvj_dc.T)
-            de_dc = np.hstack(de_dc_list)
-
-            J = np.hstack((de_diw, de_dlw, de_da, de_dc))
+            J = self.jacobian(x, y1)
 
             w = np.vstack((self.IW[:, [0]], self.IW[:, [1]], self.LW.reshape(-1, 1), self.a,
                            self.centroids[:, [0]], self.centroids[:, [1]]))
@@ -259,46 +228,6 @@ class RBF(Network):
         rbf['trainAlg'] = np.array([['trainlm']], dtype=object)  # TODO
 
         savemat("../assignment_nn/f16_rbf.mat", {'f16_rbf': rbf})
-
-
-def create_default_rbf(save=False):
-    """Creates the rbf structure used by th professor"""
-    # rbf = RBF()
-
-    # Create input
-    resolution = 0.05
-    minXI = -1 * np.ones(2)
-    maxXI = 1 * np.ones(2)
-    x = np.array([np.arange(minXI[0], maxXI[0] + resolution, resolution)])
-    y = np.array([np.arange(minXI[1], maxXI[1] + resolution, resolution)])
-
-    x, y = np.meshgrid(x, y)
-
-    x_eval = np.array([y.T.flatten(), x.T.flatten()])
-
-    rbf = RBF(x_eval.T, np.array([[1]]))
-
-    # Overwrite the centroids
-    rbf.centroids = np.array(
-        [[-0.900000000000000, 0],
-         [-0.700000000000000, 0],
-         [-0.500000000000000, 0],
-         [-0.300000000000000, 0],
-         [-0.100000000000000, 0],
-         [0.100000000000000, 0],
-         [0.300000000000000, 0],
-         [0.500000000000000, 0],
-         [0.700000000000000, 0],
-         [0.900000000000000, 0]])
-
-    rbf.n_hidden = 10
-
-    # Overwrite the weights
-    rbf.IW = np.array([[6.2442] * rbf.n_hidden, [0.6244] * rbf.n_hidden]).T
-    rbf.LW = np.array(
-        [-0.165029537793434, -0.414146881712120, 0.404277023582498, -0.520573644129355, 0.918965241416011,
-         -0.389075595385762, -0.690169083573831, 0.111016838647954, 0.581087378224464, -0.112255412824312])
-    return rbf
 
 
 def rbf_ols_optimize_neurons(x, y, x_val, y_val):
@@ -374,6 +303,8 @@ def main(TO_SAVE=False,
          RBF_LM_OPTIMAL=False,
          RBF_LM_OPTMIZE_NEURONS=False, ):
     """Main function."""
+    # Set seed
+    np.random.seed(2)
 
     console = Console()
 

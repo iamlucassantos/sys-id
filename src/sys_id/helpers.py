@@ -17,6 +17,79 @@ TRAINING_FILE = "F16traindata_CMabV_2022.csv"
 VALIDATING_FILE = "F16validationdata_CMab_2022.csv"
 
 
+class Network:
+
+    def __init__(self, name):
+        self.name = name
+
+    @staticmethod
+    def rms(v1, v2):
+        """Calculate the root mean square error between two vectors."""
+        return np.sqrt(np.mean((v1 - v2) ** 2))
+
+    def simNet(self, x, IW=None, LW=None, a=None, centroids=None):
+        """Python version of simNet.m"""
+        n_input = self.n_input
+        n_hidden = self.n_hidden
+        n_measurements = x.shape[0]
+        IW = self.IW if IW is None else IW
+        LW = self.LW if LW is None else LW
+        a = self.a if a is None else a
+        centroids = self.centroids if centroids is None else centroids
+
+        if self.name == 'rbf':
+            V1 = np.zeros((n_hidden, n_measurements))
+
+            for i in range(n_input):
+                V1 += (IW[:, [i]] * (x[:, i] - centroids[:, [i]])) ** 2
+
+            Y1 = a * np.exp(-V1)
+
+            Y2 = LW.T @ Y1
+
+        return Y1, Y2
+
+
+def create_default_rbf(save=False):
+    """Creates the rbf structure used by th professor"""
+    # rbf = RBF()
+
+    # Create input
+    resolution = 0.05
+    minXI = -1 * np.ones(2)
+    maxXI = 1 * np.ones(2)
+    x = np.array([np.arange(minXI[0], maxXI[0] + resolution, resolution)])
+    y = np.array([np.arange(minXI[1], maxXI[1] + resolution, resolution)])
+
+    x, y = np.meshgrid(x, y)
+
+    x_eval = np.array([y.T.flatten(), x.T.flatten()])
+
+    rbf = RBF(x_eval.T, np.array([[1]]))
+
+    # Overwrite the centroids
+    rbf.centroids = np.array(
+        [[-0.900000000000000, 0],
+         [-0.700000000000000, 0],
+         [-0.500000000000000, 0],
+         [-0.300000000000000, 0],
+         [-0.100000000000000, 0],
+         [0.100000000000000, 0],
+         [0.300000000000000, 0],
+         [0.500000000000000, 0],
+         [0.700000000000000, 0],
+         [0.900000000000000, 0]])
+
+    rbf.n_hidden = 10
+
+    # Overwrite the weights
+    rbf.IW = np.array([[6.2442] * rbf.n_hidden, [0.6244] * rbf.n_hidden]).T
+    rbf.LW = np.array(
+        [-0.165029537793434, -0.414146881712120, 0.404277023582498, -0.520573644129355, 0.918965241416011,
+         -0.389075595385762, -0.690169083573831, 0.111016838647954, 0.581087378224464, -0.112255412824312])
+    return rbf
+
+
 class Model:
     """Class with Kalman filter helpers"""
 

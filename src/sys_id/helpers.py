@@ -5,6 +5,9 @@ from pathlib import Path
 from scipy.io import savemat
 import numpy as np
 from math import atan
+import plotly.figure_factory as ff
+from scipy.spatial import Delaunay
+
 
 # Define paths to data files
 ROOT_PATH = Path(__file__).parent.parent
@@ -217,6 +220,19 @@ class Model:
         """Returns V_m"""
         return self.z_k[2, :]
 
+def plot_surface(x, y, title="", PLOT_SURFACE=True):
+    """Plots the surface of the RBF network."""
+    if PLOT_SURFACE:
+        points2D = x
+        tri = Delaunay(points2D)
+        simplices = tri.simplices
+
+        fig = ff.create_trisurf(x=x[:, 0], y=x[:, 1], z=y.flatten(),
+                                colormap=['rgb(50, 0, 75)', 'rgb(200, 0, 200)', '#c8dcc8'],
+                                show_colorbar=True,
+                                simplices=simplices,
+                                title=title)
+        fig.show()
 
 def rk4(func, x_0, u_0, t):
     """Runge kutta integration."""

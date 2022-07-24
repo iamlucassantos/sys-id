@@ -1,9 +1,9 @@
 import pickle
+
 import matplotlib.pyplot as plt
-import pandas as pd
-import plotly.figure_factory as ff
-from scipy.spatial import Delaunay
 import seaborn as sns
+
+from helpers import plot_surface
 
 # Plotting settings
 sns.set_theme(style="darkgrid")
@@ -16,22 +16,6 @@ PLOT_SURFACE = True
 # Load data
 rbf_data = pickle.load(open("rbf_data.pkl", "rb"))
 x, y, x_val, y_val = rbf_data["data"]
-
-
-def plot_surface(x, y, title=""):
-    """Plots the surface of the RBF network."""
-    if PLOT_SURFACE:
-        points2D = x
-        tri = Delaunay(points2D)
-        simplices = tri.simplices
-
-        fig = ff.create_trisurf(x=x[:, 0], y=x[:, 1], z=y.flatten(),
-                                colormap=['rgb(50, 0, 75)', 'rgb(200, 0, 200)', '#c8dcc8'],
-                                show_colorbar=True,
-                                simplices=simplices,
-                                title=title)
-        fig.show()
-
 
 if rbf_data['ols_optimization'] is not None:
     print("[RBF - OLS] Plotting rbf neurons optimization results.")
@@ -58,8 +42,8 @@ if rbf_data['ols_optimal'] is not None:
     ax.plot(y_val, ".--")
 
     # Plot training data and prediction
-    plot_surface(x, data["y_pred"], "OLS - Prediction")
-    plot_surface(x, y, "Training data")
+    plot_surface(x, data["y_pred"], "OLS - Prediction", PLOT_SURFACE=PLOT_SURFACE)
+    plot_surface(x, y, "Training data", PLOT_SURFACE=PLOT_SURFACE)
 
 if rbf_data['lm_optimization_mu'] is not None:
     print("[RBF - LM] Plotting levenberg mu optimization results.")
@@ -83,7 +67,7 @@ if rbf_data['lm_optimal'] is not None:
     print("[RBF - LM] Plotting levenberg optimal.")
     data = rbf_data['lm_optimal']
 
-    plot_surface(x, data["y_pred"], "LM - Prediction")
-    plot_surface(x, y, "Training data")
+    plot_surface(x, data["y_pred"], "LM - Prediction", PLOT_SURFACE=PLOT_SURFACE)
+    plot_surface(x, y, "Training data", PLOT_SURFACE=PLOT_SURFACE)
 
 plt.show()

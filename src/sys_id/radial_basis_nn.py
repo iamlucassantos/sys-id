@@ -4,7 +4,6 @@ import pickle
 import numpy as np
 import pandas as pd
 from rich.console import Console
-from scipy.io import savemat
 from sklearn.cluster import KMeans
 
 from helpers import F16, Network
@@ -17,6 +16,7 @@ class RBF(Network):
     def __init__(self):
         """Initializes the RBF network."""
         name = 'rbf'
+        train_func = 'radbas'
         self.n_input = None
         self.n_output = None
         self.n_hidden = None
@@ -28,7 +28,7 @@ class RBF(Network):
         self.goal = None
         self.min_grad = None
         self.mu = None
-        super().__init__(name)
+        super().__init__(name, train_func)
 
     def get_centroids(self, x, random_state=1):
         kmeans = KMeans(n_clusters=self.n_hidden, random_state=random_state).fit(x)
@@ -88,7 +88,7 @@ class RBF(Network):
         output = {}
         if method == "ols":
             self.IW = np.ones((n_hidden, self.n_input)) / np.std(x, axis=0)
-            A, _ = self.simNet(x, a=self.LW)
+            A, _ = self.solve(x, a=self.LW)
             self.a = ols(A.T, y)
 
         elif method == "levenberg":
@@ -106,7 +106,7 @@ class RBF(Network):
 
     def predict(self, x):
         """Predicts the output of the RBF network."""
-        _, y = self.simNet(x)
+        _, y = self.solve(x)
         y = y.T
         return y
 
@@ -136,6 +136,28 @@ class RBF(Network):
 
         return output
 
+    def solve(self, x, IW=None, LW=None, a=None, centroids=None):
+        """Python version of simNet.m"""
+        n_input = self.n_input
+        n_hidden = self.n_hidden
+        n_measurements = x.shape[0]
+        IW = self.IW if IW is None else IW
+        LW = self.LW if LW is None else LW
+        a = self.a if a is None else a
+        centroids = self.centroids if centroids is None else centroids
+
+        if self.name == 'rbf':
+            V1 = np.zeros((n_hidden, n_measurements))
+
+            for i in range(n_input):
+                V1 += (IW[:, [i]] * (x[:, i] - centroids[:, [i]])) ** 2
+
+            Y1 = a * np.exp(-V1)
+
+            Y2 = LW.T @ Y1
+
+        return Y1, Y2
+
     @staticmethod
     def cost(y, y_pred):
         e = y - y_pred.reshape(-1, 1)
@@ -146,7 +168,7 @@ class RBF(Network):
         """Levenberg-Marquardt algorithm."""
         adaption = 10
 
-        y1, y2 = self.simNet(x)
+        y1, y2 = self.solve(x)
         y1 = y1.T
         e, E = self.cost(y, y2)
 
@@ -175,7 +197,7 @@ class RBF(Network):
             centroids = w[:, [4, 5]]
 
             # Get estimation with new weights
-            y1_new, y2_new = self.simNet(x, IW=IW, LW=LW, a=a, centroids=centroids)
+            y1_new, y2_new = self.solve(x, IW=IW, LW=LW, a=a, centroids=centroids)
             y1_new = y1_new.T
             e_new, E_new = self.cost(y, y2_new)
 
@@ -208,26 +230,6 @@ class RBF(Network):
         ax.plot(self.x[:, 0], self.x[:, 1], 'o')
         ax.plot(self.centroids[:, 0], self.centroids[:, 1], 'x')
         plt.show()
-
-    def save_mat(self):
-        """Saves as matlab stuct."""
-        rbf = dict()
-        rbf['name'] = np.array([[self.name]], dtype=object)
-        rbf['centers'] = self.centroids
-        rbf['IW'] = self.IW
-        rbf['LW'] = self.LW
-        rbf['range'] = np.array([[-1, 1], [-1, 1]])  # TODO
-        rbf['trainParam'] = {
-            'epoch': 1000,
-            'goal': 0,
-            'min_grad': 1e-10,
-            'mu': 1e-3,
-        }  # TODO
-
-        rbf['trainFunct'] = np.array([['radbas'], ['purelin']], dtype=object)  # TODO
-        rbf['trainAlg'] = np.array([['trainlm']], dtype=object)  # TODO
-
-        savemat("../assignment_nn/f16_rbf.mat", {'f16_rbf': rbf})
 
 
 def rbf_ols_optimize_neurons(x, y, x_val, y_val):
@@ -396,7 +398,7 @@ def main(TO_SAVE=False,
 if __name__ == '__main__':
     # SET CONFIGURATIONS
     main(
-        TO_SAVE=True,
+        TO_SAVE=False,
         RBF_OLS_OPTMIZE_NEURONS=False,
         RBF_OLS_OPTIMAL=True,
         RBF_LM_OPTIMIZE_MU=False,

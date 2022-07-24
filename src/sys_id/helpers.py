@@ -1,9 +1,8 @@
 """Helpers module."""
 
 import csv
-from dataclasses import dataclass
 from pathlib import Path
-from scipy.spatial.distance import cdist
+from scipy.io import savemat
 import numpy as np
 from math import atan
 
@@ -19,35 +18,39 @@ VALIDATING_FILE = "F16validationdata_CMab_2022.csv"
 
 class Network:
 
-    def __init__(self, name):
+    def __init__(self, name, train_func):
         self.name = name
+        self.train_func = np.array([[train_func], ['purelin']], dtype=object)
+        self.train_alg = np.array([['trainlm']], dtype=object)
 
     @staticmethod
     def rms(v1, v2):
         """Calculate the root mean square error between two vectors."""
         return np.sqrt(np.mean((v1 - v2) ** 2))
 
-    def simNet(self, x, IW=None, LW=None, a=None, centroids=None):
-        """Python version of simNet.m"""
-        n_input = self.n_input
-        n_hidden = self.n_hidden
-        n_measurements = x.shape[0]
-        IW = self.IW if IW is None else IW
-        LW = self.LW if LW is None else LW
-        a = self.a if a is None else a
-        centroids = self.centroids if centroids is None else centroids
+    def save_mat(self):
+        """Saves as matlab stuct."""
+        rbf = dict()
+        rbf['name'] = np.array([[self.name]], dtype=object)
+
+        rbf['IW'] = self.IW
+        rbf['LW'] = self.LW
+        rbf['range'] = np.array([[-1, 1], [-1, 1]])  # TODO
+        rbf['trainParam'] = {
+            'epoch': 1000,
+            'goal': 0,
+            'min_grad': 1e-10,
+            'mu': 1e-3,
+        }  # TODO
+
+        rbf['trainFunct'] = self.train_func
+        rbf['trainAlg'] = self.train_alg
 
         if self.name == 'rbf':
-            V1 = np.zeros((n_hidden, n_measurements))
-
-            for i in range(n_input):
-                V1 += (IW[:, [i]] * (x[:, i] - centroids[:, [i]])) ** 2
-
-            Y1 = a * np.exp(-V1)
-
-            Y2 = LW.T @ Y1
-
-        return Y1, Y2
+            rbf['centers'] = self.centroids
+        elif self.name == 'feedforward':
+            rbf['b'] = np.array([[0], [0]])
+        savemat("../assignment_nn/f16_rbf.mat", {'f16_rbf': rbf})
 
 
 def create_default_rbf(save=False):

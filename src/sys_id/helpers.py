@@ -55,6 +55,59 @@ class Network:
             rbf['b'] = np.array([[0], [0]])
         savemat("../assignment_nn/f16_rbf.mat", {'f16_rbf': rbf})
 
+    def predict(self, x):
+        """Predicts the output of the RBF network."""
+        _, y = self.solve(x)
+        y = y.reshape(-1, 1)
+        return y
+
+    @staticmethod
+    def cost(y, y_pred):
+        e = y - y_pred.reshape(-1, 1)
+        E = np.sum(e ** 2) / 2
+        return e, E
+
+    def levenberg(self, x, y, adaption=10):
+        """Levenberg-Marquardt algorithm."""
+        y1, y2 = self.solve(x)
+        e, E = self.cost(y, y2)
+
+        output = {'error': [],
+                  'rms': [],
+                  'descent': 0,
+                  'iterations': 0}
+
+        for epoch in range(self.epoch):
+            output['iterations'] += 1
+            output["error"].append(E)
+            output['rms'].append(self.rms(y, y2))
+
+            J = self.jacobian(x, y1, e)
+
+            dw = np.linalg.pinv(J.T @ J + (self.mu * np.identity(J.shape[1]))) @ J.T @ e
+
+            y1_new, y2_new, e_new, E_new, w_new = self.levenberg_performance(x, y, dw)
+
+            # If error is lower, update weights and increase learning rate
+            if E_new < E:
+                # print(f"+ {epoch}: Update", self.rms(y, y2), self.rms(y, y2_new))
+                output['descent'] += 1
+                self.update_weights(w_new)
+                self.mu *= adaption
+
+                # Update variables
+                y1, y2 = y1_new, y2_new
+                e, E = e_new, E_new
+
+            else:
+                # print(f"- {epoch}: ", self.rms(y, y2), self.rms(y, y2_new), self.mu)
+                self.mu /= adaption
+
+            if self.mu < self.min_grad:
+                # print(f"Min gradient reached: {self.mu}")
+                break
+
+        return output
 
 def create_default_rbf(save=False):
     """Creates the rbf structure used by th professor"""

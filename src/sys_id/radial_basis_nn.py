@@ -34,8 +34,10 @@ class RBF(Network):
         kmeans = KMeans(n_clusters=self.n_hidden, random_state=random_state).fit(x)
         return kmeans.cluster_centers_
 
-    def jacobian(self, x, y1):
+    def jacobian(self, x, y1, e):
         """Computes the Jacobian matrix."""
+        del e  # Not used
+        y1 = y1.T
         # Output weights error
         de_dy = -1
         dy_dvk = 1
@@ -104,12 +106,6 @@ class RBF(Network):
 
         return output
 
-    def predict(self, x):
-        """Predicts the output of the RBF network."""
-        _, y = self.solve(x)
-        y = y.T
-        return y
-
     def fit_predict(self, x, y, x_val, y_val, **kwargs):
         """Fits the RBF network and predicts the output of the network."""
         fit_out = self.fit(x, y, **kwargs)
@@ -158,72 +154,39 @@ class RBF(Network):
 
         return Y1, Y2
 
-    @staticmethod
-    def cost(y, y_pred):
-        e = y - y_pred.reshape(-1, 1)
-        E = np.sum(e ** 2) / 2
-        return e, E
+    def update_weights(self, w_new):
+        """Update NN weights"""
+        self.IW = w_new['IW']
+        self.LW = w_new['LW']
+        self.a = w_new['a']
+        self.centroids = w_new['centroids']
 
-    def levenberg(self, x, y):
-        """Levenberg-Marquardt algorithm."""
-        adaption = 10
+    def levenberg_performance(self, x, y, dw):
+        """Updates the levenberg """
 
-        y1, y2 = self.solve(x)
-        y1 = y1.T
-        e, E = self.cost(y, y2)
+        w = np.vstack((self.IW[:, [0]], self.IW[:, [1]], self.LW.reshape(-1, 1), self.a,
+                       self.centroids[:, [0]], self.centroids[:, [1]]))
+        w -= dw
 
-        output = {'error': [],
-                  'rms': [],
-                  'descent': 0,
-                  'iterations': 0}
+        w = w.reshape(-1, 6, order="F")
 
-        for epoch in range(self.epoch):
-            output['iterations'] += 1
-            output["error"].append(E)
-            output['rms'].append(self.rms(y, y2))
+        IW = w[:, [0, 1]]
+        LW = w[:, [2]]
+        a = w[:, [3]]
+        centroids = w[:, [4, 5]]
+        w_new = {
+            'IW': IW,
+            'LW': LW,
+            'a': a,
+            'centroids': centroids
+        }
+        # Get estimation with new weights
+        y1_new, y2_new = self.solve(x, IW=IW, LW=LW, a=a, centroids=centroids)
+        e_new, E_new = self.cost(y, y2_new)
 
-            J = self.jacobian(x, y1)
+        return y1_new, y2_new, e_new, E_new, w_new
 
-            w = np.vstack((self.IW[:, [0]], self.IW[:, [1]], self.LW.reshape(-1, 1), self.a,
-                           self.centroids[:, [0]], self.centroids[:, [1]]))
 
-            w -= np.linalg.pinv(J.T @ J + (self.mu * np.identity(J.shape[1]))) @ J.T @ e
-
-            w = w.reshape(-1, 6, order="F")
-
-            IW = w[:, [0, 1]]
-            LW = w[:, [2]]
-            a = w[:, [3]]
-            centroids = w[:, [4, 5]]
-
-            # Get estimation with new weights
-            y1_new, y2_new = self.solve(x, IW=IW, LW=LW, a=a, centroids=centroids)
-            y1_new = y1_new.T
-            e_new, E_new = self.cost(y, y2_new)
-
-            # If error is lower, update weights and increase learning rate
-            if E_new < E:
-                # print(f"+ {epoch}: Update", self.rms(y, y2), self.rms(y, y2_new))
-                output['descent'] += 1
-                self.IW = IW
-                self.LW = LW
-                self.a = a
-                self.centroids = centroids
-                self.mu *= adaption
-
-                # Update variables
-                y1, y2 = y1_new, y2_new
-                e, E = e_new, E_new
-
-            else:
-                # print(f"- {epoch}: ", self.rms(y, y2), self.rms(y, y2_new), self.mu)
-                self.mu /= adaption
-
-            if self.mu < self.min_grad:
-                # print(f"Min gradient reached: {self.mu}")
-                break
-
-        return output
 
     def plot_centroids(self):
         fig, ax = plt.subplots()
@@ -400,7 +363,7 @@ if __name__ == '__main__':
     main(
         TO_SAVE=False,
         RBF_OLS_OPTMIZE_NEURONS=False,
-        RBF_OLS_OPTIMAL=True,
+        RBF_OLS_OPTIMAL=False,
         RBF_LM_OPTIMIZE_MU=False,
         RBF_LM_OPTIMAL=True,
         RBF_LM_OPTMIZE_NEURONS=False
